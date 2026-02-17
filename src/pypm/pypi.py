@@ -1,7 +1,7 @@
 import urllib.request
+from typing import Optional
 import urllib.error
 import json
-import os
 from pathlib import Path
 from .utils import log
 
@@ -59,7 +59,9 @@ def check_package_exists(package_name: str) -> bool:
     save_cache(_PACKAGE_CACHE)
     return exists
 
-def get_latest_version(package_name: str) -> str:
+
+
+def get_latest_version(package_name: str) -> Optional[str]:
     """
     Fetches the latest version of a package from PyPI.
     Returns the version string (e.g., "1.0.0") or None if not found.
@@ -81,7 +83,7 @@ def get_latest_version(package_name: str) -> str:
         log(f"Failed to fetch version for {package_name}: {e}", level="DEBUG")
     return None
 
-def find_pypi_package(import_name: str) -> str:
+def find_pypi_package(import_name: str) -> Optional[str]:
     """
     Attempts to find the correct PyPI package name for a given import.
     """

@@ -1,5 +1,11 @@
 # pypm – Python Project Manager
 
+[![PyPI](https://img.shields.io/pypi/v/pypm-cli)](https://pypi.org/project/pypm-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/pypm-cli)](https://pypi.org/project/pypm-cli/)
+[![License](https://img.shields.io/pypi/l/pypm-cli)](https://pypi.org/project/pypm-cli/)
+[![CI](https://github.com/Suriyakumardurai/pypm/actions/workflows/ci.yml/badge.svg)](https://github.com/Suriyakumardurai/pypm/actions/workflows/ci.yml)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 pypm is a zero-config CLI tool that automatically infers dependencies from your Python source code.
 
 > **Stop writing dependencies twice. Let your imports define your project.**

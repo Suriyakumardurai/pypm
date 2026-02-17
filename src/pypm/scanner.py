@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Set
+from typing import List
 from .utils import log
 
 def is_virtual_env(path: Path) -> bool:

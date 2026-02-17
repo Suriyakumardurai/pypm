@@ -2,7 +2,7 @@ import sys
 import subprocess
 import shlex
 import logging
-from typing import List, Optional
+from typing import Optional
 
 # Configure logging
 logging.basicConfig(

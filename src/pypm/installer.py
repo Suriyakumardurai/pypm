@@ -1,4 +1,3 @@
-import subprocess
 import sys
 from typing import List
 from .utils import log, run_command, check_command_exists

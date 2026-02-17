@@ -1,5 +1,5 @@
 import sys
-from typing import Set, List, Dict
+from typing import Set, List
 import importlib.metadata
 import os
 from .utils import log
@@ -10,13 +10,14 @@ try:
     STDLIB_MODULES = sys.stdlib_module_names
 except AttributeError:
     # Python < 3.10 fallback (simplified list for MVP, expandable)
-    STDLIB_MODULES = {
+    # Use frozenset to match sys.stdlib_module_names type
+    STDLIB_MODULES = frozenset({
         "os", "sys", "re", "math", "random", "datetime", "json", "logging",
         "argparse", "subprocess", "typing", "pathlib", "collections", "itertools",
         "functools", "ast", "shutil", "time", "io", "copy", "platform", "enum",
         "threading", "multiprocessing", "socket", "email", "http", "urllib",
         "dataclasses", "contextlib", "abc", "inspect", "warnings", "traceback"
-    }
+    })
 
 # Common import name -> PyPI package name mappings
 # Kept as a fast-path cache for known non-obvious mappings
@@ -223,9 +224,8 @@ def resolve_dependencies(imports: Set[str], project_root: str) -> List[str]:
     # Strategy: Use `uv pip compile` to resolve compatible versions if available.
     # This respects python version constraints and solves for conflicts.
     
-    from .utils import check_command_exists, run_command
+    from .utils import check_command_exists
     import subprocess
-    import shutil
     
     resolved_map = {}
     uv_success = False

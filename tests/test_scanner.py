@@ -1,5 +1,3 @@
-import pytest
-from pathlib import Path
 from pypm.scanner import is_virtual_env
 
 def test_is_virtual_env_true(tmp_path):

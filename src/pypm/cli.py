@@ -1,39 +1,14 @@
 import argparse
-import sys
 from pathlib import Path
 from typing import List
 
-try:
-    import tomli as toml
-except ImportError:
-    # Python 3.11+ has tomllib
-    try:
-        import tomllib as toml
-    except ImportError:
-        # Fallback for simple reading if tomli not installed (though we might need it for parsing existing pyproject.toml)
-        # For MVP, if we can't import, we might just overwrite or fail gracefully on read.
-        # But wait, tomli is not stdlib in older python.
-        # The prompt said "No heavy external dependencies".
-        # We can implement a very simple TOML writer/reader or just append/write for MVP.
-        # Actually, let's stick to standard library. Python 3.11+ has tomllib.
-        # If < 3.11 and no tomli, we can't robustly parse TOML.
-        # "Use only stdlib for MVP".
-        # So we should avoid tomli dependency if possible.
-        # But we need to update pyproject.toml.
-        # Let's use a simple string logic for writing if generated.
-        # For reading, if the user has pyproject.toml, we might need to parse it.
-        # I'll implement a basic "read dependencies" from string if needed, or just overwrite/merge blindly text-wise?
-        # "If pyproject.toml exists: Merge dependencies without overwriting."
-        # This implies parsing.
-        # I will assume Python 3.11+ for `tomllib` OR rudimentary parsing.
-        # Let's stick to a robust-enough manual parser for [project.dependencies] section for MVP if stdlib only on <3.11.
-        toml = None
+
 
 from .scanner import scan_directory
 from .parser import get_imports_from_file
 from .resolver import resolve_dependencies
 from .installer import install_packages
-from .utils import log, print_step, print_success, print_error, print_warning, BOLD, CYAN, GREEN, RESET
+from .utils import log, print_step, print_success, print_error, print_warning, BOLD, GREEN, RESET
 
 def get_project_dependencies(root_path: Path) -> List[str]:
     """
@@ -87,7 +62,8 @@ def generate_pyproject_toml(dependencies: List[str], path: Path):
                      parts = stripped.split("[")[1].split("]")[0].split(",")
                      for p in parts:
                          d = p.strip().strip('"').strip("'")
-                         if d: current_deps.add(d)
+                         if d:
+                            current_deps.add(d)
                      in_deps = False # Ended on same line
                 continue
             
@@ -120,7 +96,7 @@ def generate_pyproject_toml(dependencies: List[str], path: Path):
     # If not found, append valid block.
     
     new_content_lines = []
-    deps_written = False
+
     
     # Check if we have a dependencies block
     has_deps_block = any(line.strip().startswith("dependencies = [") for line in content_lines)
@@ -137,7 +113,7 @@ def generate_pyproject_toml(dependencies: List[str], path: Path):
                 for dep in sorted(new_deps_set):
                     new_content_lines.append(f'    "{dep}",\n')
                 new_content_lines.append("]\n")
-                deps_written = True
+
                 
                 # Check formatting of old block
                 if "]" in stripped:
@@ -164,7 +140,7 @@ def generate_pyproject_toml(dependencies: List[str], path: Path):
         for dep in sorted(new_deps_set):
             new_content_lines.append(f'    "{dep}",\n')
         new_content_lines.append("]\n")
-        deps_written = True
+
 
     try:
         with open(pyproject_path, "w", encoding="utf-8") as f:

@@ -1,4 +1,3 @@
-import pytest
 from pypm.resolver import is_stdlib
 
 def test_is_stdlib_true():
