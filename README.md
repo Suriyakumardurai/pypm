@@ -1,6 +1,6 @@
 # pypm – Python Project Manager
 
-[![PyPI](https://img.shields.io/pypi/v/pypm-cli)](https://pypi.org/project/pypm-cli/)
+[![PyPI version](https://img.shields.io/pypi/v/pypm-cli.svg)](https://pypi.org/project/pypm-cli/)
 [![Python](https://img.shields.io/pypi/pyversions/pypm-cli)](https://pypi.org/project/pypm-cli/)
 [![License](https://img.shields.io/pypi/l/pypm-cli)](https://pypi.org/project/pypm-cli/)
 [![CI](https://github.com/Suriyakumardurai/pypm/actions/workflows/ci.yml/badge.svg)](https://github.com/Suriyakumardurai/pypm/actions/workflows/ci.yml)
