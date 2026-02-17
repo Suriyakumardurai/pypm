@@ -73,7 +73,7 @@ def get_latest_version(package_name: str) -> Optional[str]:
     # Actually, let's trust the network for versions to be fresh.
     
     url = f"https://pypi.org/pypi/{clean_name}/json"
-    req = urllib.request.Request(url, headers={"User-Agent": "pypm-cli/0.0.1"})
+    req = urllib.request.Request(url, headers={"User-Agent": "pypm-cli/0.0.2"})
     try:
         with urllib.request.urlopen(req, timeout=5) as response:
             if response.status == 200:
