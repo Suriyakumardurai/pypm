@@ -6,9 +6,9 @@ from .utils import log
 from .pypi import find_pypi_package
 
 # Load standard library module names
-try:
+if sys.version_info >= (3, 10):
     STDLIB_MODULES = sys.stdlib_module_names
-except AttributeError:
+else:
     # Python < 3.10 fallback (simplified list for MVP, expandable)
     # Use frozenset to match sys.stdlib_module_names type
     STDLIB_MODULES = frozenset({
