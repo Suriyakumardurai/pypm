@@ -1,41 +1,93 @@
-# pypm - Python Project Manager
+# pypm – Python Project Manager
 
-**pypm** is a smart, zero-config CLI tool that automatically infers dependencies from your Python source code.
+pypm is a zero-config CLI tool that automatically infers dependencies from your Python source code.
 
-> **Stop writing dependencies twice.** Let your imports define your project.
+> **Stop writing dependencies twice. Let your imports define your project.**
 
-`pypm` uses AST-based parsing to detect imports, resolves them to PyPI packages (handling distinct names like `PIL` -> `Pillow`), and generates a `pyproject.toml` for you.
+pypm parses your project using Python’s AST, detects imports, resolves them to their correct PyPI package names (e.g., `PIL` → `Pillow`, `cv2` → `opencv-python`), and generates a modern `pyproject.toml` for you.
 
-## Features
+## 🚀 Installation
 
-- **Smart Inference**:Scans your project for `.py` files and extracts all imports.
-- **Auto-Resolution**: Maps imports (e.g., `import cv2`) to their actual PyPI packages (e.g., `opencv-python`).
-- **Standard Library Detection**: Automatically ignores Python standard library modules.
-- **Zero Config**: No need to manually list dependencies in `requirements.txt` or `pyproject.toml`.
-- **Modern Standards**: Generates PEP 621 compliant `pyproject.toml` files.
+Install from PyPI:
 
-## Installation
+```bash
+pip install pypm-cli
+```
 
-(Coming soon - for now, clone and run locally)
+After installation, you can run:
+
+```bash
+pypm --help
+```
+
+## ⚡ Quick Start
+
+### 1️⃣ Infer Dependencies
+
+Scan the current directory and generate/update `pyproject.toml`:
+
+```bash
+pypm infer
+```
+
+### 2️⃣ Infer + Install Dependencies
+
+Infer and install packages automatically:
+
+```bash
+pypm install
+```
+
+> **Note:** If `uv` is available, it will be used for faster installs. Otherwise, it falls back to `pip`.
+
+## ✨ Features
+
+- **Smart Inference**: Recursively scans your project for `.py` files and extracts all imports.
+- **Automatic Resolution**: Maps module names to actual PyPI packages:
+  - `PIL` → `Pillow`
+  - `cv2` → `opencv-python`
+  - and many more
+- **Standard Library Detection**: Automatically ignores Python built-in and stdlib modules.
+- **Zero Configuration**: No manual `requirements.txt` maintenance.
+- **Modern Standards**: Generates PEP 621–compliant `pyproject.toml`.
+
+## 📌 Example Workflow
+
+```bash
+# Inside your Python project
+pypm infer
+
+# Review generated pyproject.toml
+cat pyproject.toml
+
+# Install dependencies
+pypm install
+```
+
+## 🧠 Why pypm?
+
+Manually maintaining dependencies leads to:
+- Duplicate effort
+- Forgotten imports
+- Mismatched environments
+- Dirty `requirements.txt` files
+
+**pypm makes your imports the single source of truth.**
+
+## 📚 Documentation
+
+See full documentation in: `docs/`
+
+## 🔧 Development Setup
+
+If you want to contribute or run locally:
 
 ```bash
 git clone https://github.com/Suriyakumardurai/pypm.git
 cd pypm
-pip install .
+pip install -e .
 ```
 
-## Quick Start
+## 📦 Project
 
-1.  **Infer Dependencies**: Scan your current directory and update `pyproject.toml`.
-    ```bash
-    pypm infer
-    ```
-
-2.  **Install Dependencies**: Install the inferred packages (uses `uv` if available, else `pip`).
-    ```bash
-    pypm install
-    ```
-
-## Documentation
-
-For full documentation, see [docs/index.md](docs/index.md).
+Available on PyPI: https://pypi.org/project/pypm-cli/
