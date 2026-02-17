@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/pypm.png" alt="pypm" width="100%" />
+</div>
+
 # pypm – Python Project Manager
 
 [![PyPI version](https://img.shields.io/pypi/v/pypm-cli.svg)](https://pypi.org/project/pypm-cli/)
