@@ -21,6 +21,7 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "Environment :: Console",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python :: 3",
@@ -32,6 +33,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Typing :: Typed"
 ]
+
 
 [project.optional-dependencies]
 dev = [
