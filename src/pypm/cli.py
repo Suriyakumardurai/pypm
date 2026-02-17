@@ -195,7 +195,7 @@ def command_install(args):
     install_packages(dependencies)
 
 def main():
-    parser = argparse.ArgumentParser(description="pypm - Python Project Manager")
+    parser = argparse.ArgumentParser(description="pypm - Python Package Manager")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     
     subparsers = parser.add_subparsers(dest="command", required=False)

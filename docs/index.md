@@ -1,4 +1,4 @@
-# pypm - Python Project Manager
+# pypm - Python Package Manager
 
 Welcome to the documentation for **pypm**.
 
