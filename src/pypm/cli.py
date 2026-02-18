@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 
 
@@ -8,9 +8,9 @@ from .scanner import scan_directory
 from .parser import get_imports_from_file
 from .resolver import resolve_dependencies
 from .installer import install_packages
-from .utils import log, print_step, print_success, print_error, print_warning, BOLD, GREEN, RESET
+from .utils import print_success, print_error, print_warning
 
-from typing import List, Tuple, Set
+
 
 def is_dev_file(filepath: Path, root_path: Path) -> bool:
     """
@@ -43,7 +43,6 @@ def get_project_dependencies(root_path: Path) -> Tuple[List[str], List[str]]:
     Returns (prod_dependencies, dev_dependencies).
     """
     from .heuristics import run_heuristics
-    from rich.tree import Tree
     from .utils import console
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -88,7 +87,7 @@ def get_project_dependencies(root_path: Path) -> Tuple[List[str], List[str]]:
                     else:
                         prod_imports.update(runtime)
                         dev_imports.update(typing)
-                except Exception as e:
+                except Exception:
                     # Silently ignore or log debug if needed
                     pass
 
@@ -196,7 +195,6 @@ def command_infer(args):
 
 def command_install(args):
     from .utils import console
-    from rich.tree import Tree
 
     root_path = Path(args.path).resolve()
     if not root_path.exists():

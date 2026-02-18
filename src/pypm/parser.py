@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-from typing import Set
+import json
 from .utils import log
 
 class ImportVisitor(ast.NodeVisitor):
@@ -118,14 +118,20 @@ class ImportVisitor(ast.NodeVisitor):
             
             # Database connection strings heuristics
             if "mysql" in val and ("://" in val or "+aiomysql" in val):
-                if "aiomysql" in val: target_set.add("aiomysql")
-                elif "pymysql" in val: target_set.add("pymysql")
-                else: target_set.add("mysqlclient") # Default for mysql://
+                if "aiomysql" in val:
+                    target_set.add("aiomysql")
+                elif "pymysql" in val:
+                    target_set.add("pymysql")
+                else:
+                    target_set.add("mysqlclient") # Default for mysql://
                 
             elif "postgres" in val and ("://" in val or "+asyncpg" in val or "+psycopg" in val):
-                if "asyncpg" in val: target_set.add("asyncpg")
-                elif "psycopg" in val: target_set.add("psycopg2-binary") # Default
-                else: target_set.add("psycopg2-binary") # Default for postgres://
+                if "asyncpg" in val:
+                    target_set.add("asyncpg")
+                elif "psycopg" in val:
+                    target_set.add("psycopg2-binary") # Default
+                else:
+                    target_set.add("psycopg2-binary") # Default for postgres://
                 
             elif "mssql" in val and ("://" in val or "+pyodbc" in val):
                 target_set.add("pyodbc")
@@ -142,7 +148,7 @@ class ImportVisitor(ast.NodeVisitor):
         # Python < 3.8 fallback
         self.visit_Constant(node)
 
-import json
+
 
 def get_imports_from_notebook(filepath: Path) -> dict:
     """

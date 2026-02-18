@@ -1,7 +1,7 @@
 import sys
 from typing import Set, List
 import importlib.metadata
-import os
+
 from .utils import log
 from .pypi import find_pypi_package, check_package_exists
 from .db import KNOWN_PYPI_PACKAGES
@@ -377,7 +377,7 @@ def resolve_dependencies(imports: Set[str], project_root: str, known_local_modul
     # This respects python version constraints and solves for conflicts.
     
     from .utils import check_command_exists
-    import subprocess
+
     
     resolved_map = {}
     uv_success = False

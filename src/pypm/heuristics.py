@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Set, List
+from typing import Set
 import re
 from .utils import log
 

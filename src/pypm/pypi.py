@@ -29,33 +29,7 @@ def save_cache(cache: dict):
 # Global Cache
 _PACKAGE_CACHE = load_cache()
 
-def check_package_exists(package_name: str) -> bool:
-    """
-    Checks if a package exists on PyPI using the JSON API.
-    Uses usage of local cache to avoid redundant network requests.
-    """
-    if package_name in _PACKAGE_CACHE:
-        return _PACKAGE_CACHE[package_name]
 
-    url = f"https://pypi.org/pypi/{package_name}/json"
-    exists = False
-    try:
-        with urllib.request.urlopen(url, timeout=3) as response:
-            if response.status == 200:
-                exists = True
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            exists = False
-        else:
-            log(f"Error checking PyPI for {package_name}: {e}", level="DEBUG")
-            # Don't cache errors other than 404
-            return False 
-    except Exception as e:
-        log(f"Network error checking PyPI for {package_name}: {e}", level="DEBUG")
-        return False
-    
-    save_cache(_PACKAGE_CACHE)
-    return exists
 
 # Memory cache for current execution
 _METADATA_MEMORY_CACHE = {}
