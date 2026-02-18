@@ -7,7 +7,7 @@ def detect_django_channels(root_path: Path) -> Set[str]:
     """
     Scans for Django Channels usage (daphne).
     """
-    deps = set()
+    deps: Set[str] = set()
     return deps
 
 def detect_django_database(root_path: Path) -> Set[str]:

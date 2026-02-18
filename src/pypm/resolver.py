@@ -1,5 +1,5 @@
 import sys
-from typing import Set, List
+from typing import Set, List, Optional, Dict, Any
 import importlib.metadata
 
 from .utils import log
@@ -95,7 +95,7 @@ def get_installed_version(package_name: str) -> str:
     except importlib.metadata.PackageNotFoundError:
         return package_name
 
-def resolve_dependencies(imports: Set[str], project_root: str, known_local_modules: Set[str] = None) -> List[str]:
+def resolve_dependencies(imports: Set[str], project_root: str, known_local_modules: Optional[Set[str]] = None) -> List[str]:
     """
     Resolves imports to distribution packages using Online PyPI verification.
     """
@@ -314,17 +314,17 @@ def resolve_dependencies(imports: Set[str], project_root: str, known_local_modul
     # 6b. Deduplicate and Merge Extras: 
     # If we have "pipecat-ai[aws]" and "pipecat-ai[google]", we want "pipecat-ai[aws,google]"
     
-    merged_deps = {}
+    merged_deps: Dict[str, Dict[str, Any]] = {}
     
     for dep in final_deps:
         # Parse dep string
         if "[" in dep:
             base = dep.split("[")[0]
             extras_part = dep.split("[")[1].strip("]")
-            extras = set(e.strip() for e in extras_part.split(","))
+            parsed_extras = set(e.strip() for e in extras_part.split(","))
         else:
             base = dep
-            extras = set()
+            parsed_extras = set()
             
         # Version pin handling? 
         # If versions differ, we might have issues. For now assume consistent versions or latest.
@@ -346,7 +346,7 @@ def resolve_dependencies(imports: Set[str], project_root: str, known_local_modul
         if base_name not in merged_deps:
             merged_deps[base_name] = {"extras": set(), "version": version}
         
-        merged_deps[base_name]["extras"].update(extras)
+        merged_deps[base_name]["extras"].update(parsed_extras)
         if version:
              merged_deps[base_name]["version"] = version
 
@@ -379,7 +379,7 @@ def resolve_dependencies(imports: Set[str], project_root: str, known_local_modul
     from .utils import check_command_exists
 
     
-    resolved_map = {}
+    resolved_map: Dict[str, str] = {}
     uv_success = False
     
     

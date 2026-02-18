@@ -1,8 +1,8 @@
 import urllib.request
-from typing import Optional
 import urllib.error
 import json
 from pathlib import Path
+from typing import Optional, Dict, List, Any
 from .utils import log
 
 # Cache Setup
@@ -31,8 +31,10 @@ _PACKAGE_CACHE = load_cache()
 
 
 
+
+
 # Memory cache for current execution
-_METADATA_MEMORY_CACHE = {}
+_METADATA_MEMORY_CACHE: Dict[str, Any] = {}
 
 def get_pypi_metadata(package_name: str) -> Optional[dict]:
     """
@@ -132,7 +134,7 @@ def find_pypi_package(import_name: str) -> Optional[str]:
             
     return None
 
-def get_package_extras(package_name: str) -> dict:
+def get_package_extras(package_name: str) -> List[str]:
     """
     Fetches the extras for a package from PyPI.
     Returns a dict mapping extra names to their requirements.

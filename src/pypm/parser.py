@@ -154,7 +154,7 @@ def get_imports_from_notebook(filepath: Path) -> dict:
     """
     Parses a Jupyter Notebook (.ipynb) and returns a dict of imports.
     """
-    result = {
+    result: dict[str, set[str]] = {
         "runtime": set(),
         "typing": set(),
         "dynamic": set()
@@ -202,7 +202,7 @@ def get_imports_from_file(filepath: Path) -> dict:
     if str(filepath).endswith(".ipynb"):
         return get_imports_from_notebook(filepath)
         
-    result = {
+    result: dict[str, set[str]] = {
         "runtime": set(),
         "typing": set(),
         "dynamic": set()
