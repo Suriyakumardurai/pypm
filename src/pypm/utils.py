@@ -1,18 +1,24 @@
 import sys
 import subprocess
 import shlex
-import logging
 from typing import Optional
+from rich.console import Console
+from rich.theme import Theme
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger("pypm")
+# Custom Theme
+custom_theme = Theme({
+    "info": "dim cyan",
+    "warning": "yellow",
+    "error": "bold red",
+    "success": "bold green",
+    "step": "bold cyan",
+    "cmd": "dim",
+})
 
-# ANSI Colors
+# Initialize Console
+console = Console(theme=custom_theme)
+
+# Legacy ANSI Colors (Kept for compatibility if imported elsewhere, but should be phased out)
 CYAN = "\033[36m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
@@ -20,61 +26,55 @@ RED = "\033[31m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Icons
-Green_Check = f"{GREEN}✔{RESET}"
-Red_Cross = f"{RED}✖{RESET}"
-Yellow_Warn = f"{YELLOW}⚠{RESET}"
+# Global Verbosity Flag
+VERBOSE = False
 
 def log(message: str, level: str = "INFO"):
     """
-    Wrapper around logging for compatibility with existing code.
+    Wrapper around console.log/print.
     """
     if level == "DEBUG":
-        logger.debug(f"{CYAN}[DEBUG] {message}{RESET}")
+        if VERBOSE:
+            console.print(f"[dim][DEBUG] {message}[/dim]")
     elif level == "WARNING":
-        logger.warning(f"{Yellow_Warn} {YELLOW}{message}{RESET}")
+        console.print(f"[warning]⚠ {message}[/warning]")
     elif level == "ERROR":
-        logger.error(f"{Red_Cross} {RED}{message}{RESET}")
+        console.print(f"[error]✖ {message}[/error]")
     else:
-        logger.info(message)
+        console.print(message)
 
 def print_step(message: str):
-    logger.info(f"{BOLD}{CYAN}==>{RESET} {BOLD}{message}{RESET}")
+    console.print(f"[step]==>[/step] [bold]{message}[/bold]")
 
 def print_success(message: str):
-    logger.info(f"{Green_Check} {GREEN}{message}{RESET}")
+    console.print(f"[success]✔ {message}[/success]")
 
 def print_error(message: str):
-    logger.error(f"{Red_Cross} {RED}{message}{RESET}")
+    console.print(f"[error]✖ {message}[/error]")
 
 def print_warning(message: str):
-    logger.warning(f"{Yellow_Warn} {YELLOW}{message}{RESET}")
+    console.print(f"[warning]⚠ {message}[/warning]")
 
 def run_command(command: str, cwd: Optional[str] = None) -> bool:
     """
     Runs a shell command. Returns True if successful, False otherwise.
     """
     try:
-        # On Windows, shlex.split might not handle backslashes as expected for paths if not careful,
-        # but for simple commands like 'uv pip install ...' it should be fine.
-        # Check platform to decide whether to use shell=True or not (often needed on Windows for built-ins, but uv is an executable).
-        # We will use shell=False and split command for better security/control, unless complex shell features are needed.
-        
         args = shlex.split(command, posix=(sys.platform != "win32"))
         
-        log(f"Running: {command}", level="DEBUG")
+        # log(f"Running: {command}", level="DEBUG") # Too verbose for normal run
         result = subprocess.run(args, cwd=cwd, check=False, text=True, capture_output=False)
         
         if result.returncode != 0:
-            log(f"Command failed with return code {result.returncode}", level="ERROR")
+            console.print(f"[error]Command failed with return code {result.returncode}[/error]")
             return False
             
         return True
     except FileNotFoundError:
-        log(f"Command not found: {command}", level="ERROR")
+        console.print(f"[error]Command not found: {command}[/error]")
         return False
     except Exception as e:
-        log(f"Error running command: {e}", level="ERROR")
+        console.print(f"[error]Error running command: {e}[/error]")
         return False
 
 def check_command_exists(command: str) -> bool:

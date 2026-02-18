@@ -11,7 +11,7 @@ def is_virtual_env(path: Path) -> bool:
     return (path / "pyvenv.cfg").exists() or \
            (path / "bin" / "activate").exists() or \
            (path / "Scripts" / "activate").exists() or \
-           path.name in (".venv", "venv", "env", ".git", ".idea", "__pycache__", "tests", "test", "testing")
+           path.name in (".venv", "venv", "env", ".git", ".idea", "__pycache__")
 
 def scan_directory(root_path: Path) -> List[Path]:
     """
@@ -24,15 +24,11 @@ def scan_directory(root_path: Path) -> List[Path]:
         for root, dirs, files in os.walk(root_path):
             current_root = Path(root)
             
-            # Modify dirs in-place to skip ignored directories and test directories
-            dirs[:] = [d for d in dirs if not is_virtual_env(current_root / d) and d not in ("tests", "test", "testing")]
+            # Modify dirs in-place to skip ignored directories (but keep tests)
+            dirs[:] = [d for d in dirs if not is_virtual_env(current_root / d)]
             
             for file in files:
-                if file.endswith(".py"):
-                    # Skip test files
-                    if file.startswith("test_") or file.endswith("_test.py") or file in ("test.py", "tests.py"):
-                        continue
-                        
+                if file.endswith(".py") or file.endswith(".ipynb"):
                     py_files.append(current_root / file)
                     
     except PermissionError as e:
