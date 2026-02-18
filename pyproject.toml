@@ -1,6 +1,6 @@
 [project]
 name = "pypm-cli"
-version = "0.0.3"
+version = "0.0.4"
 description = "Automatic, AST-based dependency inference from Python imports. Stop writing dependencies twice."
 readme = "README.md"
 requires-python = ">=3.9"

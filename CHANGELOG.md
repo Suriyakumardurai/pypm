@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4] - 2026-02-18
+
+### Fixed
+- Resolved all static type checking errors found by `mypy` in CI.
+- Optimized imports and improved PEP8 compliance across core modules.
+
 ## [0.0.3] - 2026-02-18
 
 ### Added
