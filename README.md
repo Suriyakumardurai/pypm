@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/pypm.png" alt="pypm" width="100%" />
+  <img src="https://raw.githubusercontent.com/Suriyakumardurai/pypm/main/assets/pypm.png" alt="pypm" width="100%" />
 </div>
 
 # pypm – Python Package Manager
@@ -14,7 +14,15 @@ pypm is a zero-config CLI tool that automatically infers dependencies from your 
 
 > **Stop writing dependencies twice. Let your imports define your project.**
 
-pypm parses your project using Python’s AST, detects imports, resolves them to their correct PyPI package names (e.g., `PIL` → `Pillow`, `cv2` → `opencv-python`), and generates a modern `pyproject.toml` for you.
+pypm parses your project using Python's AST, detects imports, resolves them to their correct PyPI package names (e.g., `PIL` → `Pillow`, `cv2` → `opencv-python`), and generates a modern `pyproject.toml` for you.
+
+## 🐍 Supported Python Versions
+
+| Version | Status |
+|---------|--------|
+| Python 3.5 – 3.7 | ✅ Compatible (EOL — no rich animations, plain ANSI fallback) |
+| Python 3.8 | ✅ Fully supported |
+| Python 3.9 – 3.14 | ✅ Fully supported (CI tested) |
 
 ## 🚀 Installation
 
@@ -40,7 +48,15 @@ Scan the current directory and generate/update `pyproject.toml`:
 pypm infer
 ```
 
-### 2️⃣ Infer + Install Dependencies
+### 2️⃣ Dry Run (Preview Only)
+
+See what would be added without modifying files:
+
+```bash
+pypm infer --dry-run
+```
+
+### 3️⃣ Infer + Install Dependencies
 
 Infer and install packages automatically:
 
@@ -53,11 +69,26 @@ pypm install
 ## ✨ Features
 
 - **Blazing Fast**: Scans 1000+ files in under 1 second using aggressive parallelism and local caching.
-- **Offline-First Mapping**: Uses a bundled database of popular packages to resolve dependencies instantly without network.
-- **Smart Inference**: Recursively scans your project for `.py` files and extracts all imports.
-- **Automatic Resolution**: Maps module names to actual PyPI packages (e.g., `PIL` → `Pillow`).
-- **Standard Library Detection**: Automatically ignores Python built-in and stdlib modules.
+- **Offline-First Mapping**: Uses a bundled database of 200+ popular packages to resolve dependencies instantly without network.
+- **Smart Inference**: Recursively scans your project for `.py` and `.ipynb` files and extracts all imports.
+- **Automatic Resolution**: Maps module names to actual PyPI packages (e.g., `PIL` → `Pillow`, `zmq` → `pyzmq`, `attr` → `attrs`).
+- **Standard Library Detection**: Automatically ignores 150+ Python built-in and stdlib modules.
+- **Try/Except Import Detection**: Handles `try: import ujson except: import json` patterns correctly.
+- **Database DSN Detection**: Automatically detects database dependencies from connection strings.
+- **Dynamic Import Detection**: Catches `importlib.import_module()` and `__import__()` calls.
+- **Framework-Aware**: Adds extras for FastAPI, Django, Flask, Celery, SQLAlchemy, etc.
 - **Modern Standards**: Generates PEP 621–compliant `pyproject.toml`.
+- **Secure**: Validates all package names before shell execution, sanitizes PyPI URLs, hardens cache files.
+
+## 🔒 Security
+
+pypm 0.0.5 includes built-in protections:
+
+- **Command injection prevention**: All package names are validated against PEP 508 and checked for shell metacharacters before being passed to `pip`/`uv`.
+- **URL sanitization**: Import names are validated before being used in PyPI API URLs to prevent path traversal.
+- **Cache hardening**: Cache files use restrictive permissions (600 on Unix) and entries are validated on load.
+- **Symlink protection**: Symlinked directories and files are skipped during scanning.
+- **File size limits**: Files larger than 10MB are skipped to prevent resource exhaustion.
 
 ## 📌 Example Workflow
 
@@ -93,7 +124,7 @@ If you want to contribute or run locally:
 ```bash
 git clone https://github.com/Suriyakumardurai/pypm.git
 cd pypm
-pip install -e .
+pip install -e .[dev]
 ```
 
 ## 📦 Project
