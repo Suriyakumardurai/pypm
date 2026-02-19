@@ -284,7 +284,7 @@ def main():
             version = _meta.version("pypm-cli")
         except Exception:
             try:
-                import importlib_metadata as _meta_backport  # type: ignore[import-untyped]
+                import importlib_metadata as _meta_backport  # type: ignore[import-untyped,import-not-found]
                 version = _meta_backport.version("pypm-cli")
             except Exception:
                 version = "0.0.5"

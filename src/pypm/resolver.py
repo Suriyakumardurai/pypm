@@ -9,7 +9,7 @@ try:
     import importlib.metadata as _importlib_metadata
 except ImportError:
     try:
-        import importlib_metadata as _importlib_metadata  # type: ignore[no-redef,import-untyped]
+        import importlib_metadata as _importlib_metadata  # type: ignore[no-redef,import-untyped,import-not-found]
     except ImportError:
         _importlib_metadata = None  # type: ignore[assignment]
 
