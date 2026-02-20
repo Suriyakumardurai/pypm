@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List  # noqa: F401
+from typing import List, Iterator  # noqa: F401
 from .utils import log
 
 # Directories to always skip during scanning
@@ -51,43 +51,45 @@ def is_virtual_env(path):
     return False
 
 
+def iter_scan_directory(root_path):
+    # type: (Path) -> Iterator[Path]
+    """
+    Generator that yields .py/.ipynb files as they're discovered.
+    Enables pipeline: files can be parsed while scanning continues.
+    Uses os.scandir() for fast directory iteration.
+    """
+    stack = [root_path]
+
+    while stack:
+        current_dir = stack.pop()
+        try:
+            with os.scandir(str(current_dir)) as entries:
+                for entry in entries:
+                    try:
+                        if entry.is_symlink():
+                            continue
+
+                        if entry.is_dir(follow_symlinks=False):
+                            dir_path = Path(entry.path)
+                            if not is_virtual_env(dir_path):
+                                stack.append(dir_path)
+                        elif entry.is_file(follow_symlinks=False):
+                            name = entry.name
+                            if name.endswith(".py") or name.endswith(".ipynb"):
+                                yield Path(entry.path)
+                    except OSError:
+                        continue
+        except PermissionError as e:
+            log("Permission denied accessing %s: %s" % (str(current_dir), str(e)), level="ERROR")
+        except OSError:
+            continue
+
+
 def scan_directory(root_path):
     # type: (Path) -> List[Path]
     """
-    Recursively scans the directory for .py files, excluding git, venvs, etc.
-    Symlinks are not followed to prevent infinite loops and path traversal.
+    Recursively scans the directory for .py files.
+    Wraps iter_scan_directory for backward compatibility.
     """
-    py_files = []  # type: List[Path]
+    return list(iter_scan_directory(root_path))
 
-    try:
-        # Walk the tree (followlinks=False is the default, but explicit is better)
-        for root, dirs, files in os.walk(root_path, followlinks=False):
-            current_root = Path(root)
-
-            # Modify dirs in-place to skip ignored directories
-            # Also skip symlinked directories for security
-            filtered_dirs = []
-            for d in dirs:
-                dir_path = current_root / d
-                # Skip symlinks to prevent infinite loops and path traversal
-                if dir_path.is_symlink():
-                    log("Skipping symlinked directory: %s" % str(dir_path), level="DEBUG")
-                    continue
-                if is_virtual_env(dir_path):
-                    continue
-                filtered_dirs.append(d)
-            dirs[:] = filtered_dirs
-
-            for file in files:
-                if file.endswith(".py") or file.endswith(".ipynb"):
-                    file_path = current_root / file
-                    # Skip symlinked files too
-                    if file_path.is_symlink():
-                        log("Skipping symlinked file: %s" % str(file_path), level="DEBUG")
-                        continue
-                    py_files.append(file_path)
-
-    except PermissionError as e:
-        log("Permission denied accessing %s: %s" % (str(root_path), str(e)), level="ERROR")
-
-    return py_files

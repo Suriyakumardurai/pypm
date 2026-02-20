@@ -1,6 +1,6 @@
 # API Reference
 
-This section documents the internal modules of `pypm` v0.0.5.
+This section documents the internal modules of `pypm` v0.0.6.
 
 ## `pypm.scanner`
 

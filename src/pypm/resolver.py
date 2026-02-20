@@ -1,12 +1,12 @@
 import sys
 
-from .utils import log
-from .pypi import find_pypi_package, check_package_exists
+from .utils import log, get_optimal_workers
+from .pypi import find_pypi_package, check_package_exists, flush_cache
 from .db import KNOWN_PYPI_PACKAGES
 
 # --- importlib.metadata compatibility ---
 try:
-    import importlib.metadata as _importlib_metadata
+    import importlib.metadata as _importlib_metadata  # novm
 except ImportError:
     try:
         import importlib_metadata as _importlib_metadata  # type: ignore[no-redef,import-untyped,import-not-found]
@@ -15,7 +15,7 @@ except ImportError:
 
 # Load standard library module names
 if sys.version_info >= (3, 10):
-    STDLIB_MODULES = sys.stdlib_module_names
+    STDLIB_MODULES = sys.stdlib_module_names  # novm
 else:
     # Python < 3.10 fallback — comprehensive stdlib list
     # Covers all public modules present in Python 3.5–3.9
@@ -144,6 +144,9 @@ COMMON_MAPPINGS = {
     "rtree": "Rtree",
 }
 
+# Pre-computed lowercase lookup for O(1) case-insensitive matching
+COMMON_MAPPINGS_LOWER = {k.lower(): v for k, v in COMMON_MAPPINGS.items()}
+
 # Framework specific additions (if key is found, add value)
 FRAMEWORK_EXTRAS = {
     "fastapi": ["uvicorn[standard]", "python-multipart", "email-validator"],
@@ -203,70 +206,76 @@ def get_installed_version(package_name):
 def resolve_dependencies(imports, project_root, known_local_modules=None):
     """
     Resolves imports to distribution packages using Online PyPI verification.
+    Uses batch set operations for stdlib/local filtering (O(1) amortized).
     """
     dependencies = []
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # Prepare list of candidates to check
-    candidates_to_check = []
-
+    # Prepare filtering sets
     if known_local_modules is None:
         known_local_modules = set()
 
+    # ---- BATCH FILTER: stdlib + local + suspicious (set operations) ----
+    # Build lowercase stdlib set for case-insensitive matching
+    stdlib_lower = frozenset(m.lower() for m in STDLIB_MODULES)
+
+    # Pre-compute base modules and filter in bulk
+    candidates_to_check = []
+    resolved_bases = set()
+    seen_bases = set()
+
     for module in imports:
-        # 1. Filter Standard Library
-        if is_stdlib(module):
-            continue
-
-        # 1b. Filter Standard Library (LowerCase Check)
-        if is_stdlib(module.lower()):
-            continue
-
-        # 2. Filter Local Modules
+        module_lower = module.lower()
         base_module = module.split(".")[0]
+
+        # 1. Batch stdlib filter (O(1) set lookup)
+        if module in STDLIB_MODULES or module_lower in stdlib_lower:
+            continue
+        if base_module in STDLIB_MODULES or base_module.lower() in stdlib_lower:
+            continue
+
+        # 2. Local module filter
         if base_module in known_local_modules:
-             log("Ignored local module: %s" % module, level="DEBUG")
-             continue
+            continue
 
-        # 3. Filter Suspicious/Generic Names
+        # 3. Suspicious names filter
         if module in SUSPICIOUS_PACKAGES:
-             log("Ignored suspicious/generic module name: %s (likely local)" % module, level="DEBUG")
-             continue
+            continue
 
-        # 4. Fast Path: Common Mappings
+        # 4. Fast Path: Common Mappings (O(1) lookup via pre-computed lowercase dict)
+        module_lower = module.lower()
         if module in COMMON_MAPPINGS:
             dependencies.append(COMMON_MAPPINGS[module])
+            resolved_bases.add(module_lower.replace("_", "-"))
             continue
 
-        # 4b. Fast Path: Common Mappings (Case-Insensitive)
-        found_mapping = False
-        for m_key, m_val in COMMON_MAPPINGS.items():
-            if m_key.lower() == module.lower():
-                dependencies.append(m_val)
-                found_mapping = True
-                break
-        if found_mapping:
+        mapped = COMMON_MAPPINGS_LOWER.get(module_lower)
+        if mapped is not None:
+            dependencies.append(mapped)
+            resolved_bases.add(module_lower.replace("_", "-"))
             continue
 
-        # 5. Fast Path: Known Packages (New)
-        norm_module_name = module.lower().replace("_", "-").replace(".", "-")
+        # 5. Fast Path: Known Packages
+        norm_module_name = module_lower.replace("_", "-").replace(".", "-")
 
-        # Check against bundled DB
         if norm_module_name in KNOWN_PYPI_PACKAGES:
              dependencies.append(norm_module_name)
+             resolved_bases.add(norm_module_name)
              continue
 
-        # Check if "module" (original) is in DB
-        if module.lower() in KNOWN_PYPI_PACKAGES:
-             dependencies.append(module.lower())
+        if module_lower in KNOWN_PYPI_PACKAGES:
+             dependencies.append(module_lower)
+             resolved_bases.add(module_lower)
              continue
 
-        # 6. Queue for Online Check
+        # 6. Queue for Online Check (deduplicate by base module)
         base_part = module.split(".")[0].lower().replace("_", "-")
-        resolved_bases = [d.split("[")[0].lower() for d in dependencies]
         if base_part in resolved_bases and "." in module:
             continue
+        if base_part in seen_bases:
+            continue
+        seen_bases.add(base_part)
 
         candidates_to_check.append(module)
 
@@ -296,12 +305,8 @@ def resolve_dependencies(imports, project_root, known_local_modules=None):
                 if norm_base in KNOWN_PYPI_PACKAGES:
                     return norm_base, None
 
-                # Check base in COMMON_MAPPINGS first (Case-Insensitive)
-                base_pkg = None
-                for m_key, m_val in COMMON_MAPPINGS.items():
-                    if m_key.lower() == base.lower():
-                        base_pkg = m_val
-                        break
+                # O(1) check via pre-computed lowercase dict
+                base_pkg = COMMON_MAPPINGS_LOWER.get(base.lower())
 
                 if not base_pkg:
                     if base.lower() not in SUSPICIOUS_PACKAGES:
@@ -329,7 +334,8 @@ def resolve_dependencies(imports, project_root, known_local_modules=None):
 
             return None, module
 
-        with ThreadPoolExecutor(max_workers=50) as executor:
+        workers = get_optimal_workers(len(candidates_to_check), io_bound=True)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             future_to_module = dict((executor.submit(processing_task, m), m) for m in candidates_to_check)
 
             for future in as_completed(future_to_module):
@@ -344,6 +350,9 @@ def resolve_dependencies(imports, project_root, known_local_modules=None):
                     log("Error verifying %s: %s" % (future_to_module[future], str(e)), level="ERROR")
 
         dependencies.extend(list(verified_deps))
+
+        # Flush cache to disk once after all network checks are done
+        flush_cache()
 
     # 6. Apply Framework Extras
     final_deps = set(dependencies)

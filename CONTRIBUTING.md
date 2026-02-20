@@ -58,6 +58,12 @@ This section guides you through submitting an enhancement suggestion for pypm, i
    mypy src/pypm
    ```
 
+6. **Performance Testing**
+   If you are modifying the scanner or parser, please ensure no performance regressions.
+   ```bash
+   pypm infer --bench
+   ```
+
 ## 🎨 Code Style
 
 - We use `ruff` for linting and formatting.

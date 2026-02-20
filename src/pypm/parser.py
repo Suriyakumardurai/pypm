@@ -1,4 +1,5 @@
 import ast
+import os
 from pathlib import Path  # noqa: F401
 import json
 from typing import Dict, Set, Optional  # noqa: F401
@@ -7,8 +8,35 @@ from .utils import log
 # Security: Maximum file size to parse (10MB)
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
+# ---- Import Cache (mtime + size based) ----
+# Skips re-parsing files that haven't changed since last run.
+# Key: (filepath_str, mtime_ns, size) -> parsed imports dict
+_IMPORT_CACHE = {}  # type: Dict[str, dict]
+
+
+def _get_file_key(filepath):
+    # type: (Path) -> Optional[str]
+    """Returns a cache key based on path + mtime + size. None if stat fails."""
+    try:
+        st = os.stat(str(filepath))
+        return "%s|%d|%d" % (str(filepath), st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def _has_imports(content):
+    # type: (str) -> bool
+    """
+    Ultra-fast pre-filter: checks if file content contains import-related keywords.
+    If no imports/requires patterns exist, skip expensive AST parsing entirely.
+    """
+    return "import " in content or "import_module" in content or "__import__" in content
+
 
 class ImportVisitor(ast.NodeVisitor):
+    __slots__ = ("imports", "typing_imports", "dynamic_imports",
+                 "in_type_checking", "in_try_block", "in_except_block")
+
     def __init__(self):
         self.imports = set()
         self.typing_imports = set()
@@ -19,7 +47,6 @@ class ImportVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
-            # Add base module
             base_module = alias.name.split('.')[0]
 
             if self.in_type_checking:
@@ -32,7 +59,6 @@ class ImportVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
-        # Ignore relative imports (level > 0)
         if node.level > 0:
             return
 
@@ -46,7 +72,6 @@ class ImportVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_If(self, node):
-        # Detect "if TYPE_CHECKING:" blocks
         is_type_checking = False
         try:
            if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
@@ -69,33 +94,20 @@ class ImportVisitor(ast.NodeVisitor):
             self.generic_visit(node)
 
     def visit_Try(self, node):
-        """
-        Handle try/except import patterns:
-          try:
-              import ujson as json    # Primary (add as dependency)
-          except ImportError:
-              import json             # Fallback (skip if stdlib)
-        """
-        # Save state
         prev_try = self.in_try_block
         prev_except = self.in_except_block
 
-        # Visit try body normally — these are the primary imports we want
         self.in_try_block = True
         self.in_except_block = False
         for child in node.body:
             self.visit(child)
         self.in_try_block = prev_try
 
-        # Visit except handlers — imports here are fallbacks
-        # We still collect them, but the resolver will filter stdlibs anyway
         self.in_except_block = True
         self.in_try_block = False
         for handler in node.handlers:
-            # Only suppress if this is an ImportError/ModuleNotFoundError handler
             is_import_error_handler = False
             if handler.type is None:
-                # Bare except: — treat as import error handler to be safe
                 is_import_error_handler = True
             elif isinstance(handler.type, ast.Name):
                 if handler.type.id in ("ImportError", "ModuleNotFoundError", "Exception"):
@@ -107,9 +119,6 @@ class ImportVisitor(ast.NodeVisitor):
                         break
 
             if is_import_error_handler:
-                # For except ImportError blocks, we still visit but the imports
-                # collected here are fallbacks. The resolver's stdlib filter
-                # will naturally remove stdlib fallbacks like `import json`.
                 for child in handler.body:
                     self.visit(child)
             else:
@@ -118,7 +127,6 @@ class ImportVisitor(ast.NodeVisitor):
 
         self.in_except_block = prev_except
 
-        # Visit else and finally blocks normally
         for child in node.orelse:
             self.visit(child)
         if hasattr(node, 'finalbody'):
@@ -126,7 +134,6 @@ class ImportVisitor(ast.NodeVisitor):
                 self.visit(child)
 
     def visit_Call(self, node):
-        # Detect dynamic imports
         try:
             module_name = None
             if isinstance(node.func, ast.Attribute) and node.func.attr == "import_module":
@@ -146,12 +153,10 @@ class ImportVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Constant(self, node):
-        # Scan string literals for database connection strings
         if isinstance(node.value, str):
             val = node.value
             target_set = self.typing_imports if self.in_type_checking else self.imports
 
-            # Database connection strings heuristics
             if "mysql" in val and ("://" in val or "+aiomysql" in val):
                 if "aiomysql" in val:
                     target_set.add("aiomysql")
@@ -174,39 +179,38 @@ class ImportVisitor(ast.NodeVisitor):
             elif "redis://" in val:
                 target_set.add("redis")
             elif "sqlite://" in val:
-                pass  # Built-in
+                pass
             elif "mongodb://" in val:
                 target_set.add("pymongo")
         self.generic_visit(node)
 
     def visit_Str(self, node):
-        # Python < 3.8 fallback
         self.visit_Constant(node)
+
+
+# Empty result singleton to avoid re-creating dict+sets for no-import files
+_EMPTY_RESULT = {"runtime": frozenset(), "typing": frozenset(), "dynamic": frozenset()}  # type: Dict[str, frozenset]
 
 
 def _read_file_safe(filepath):
     # type: (Path) -> Optional[str]
-    """
-    Reads a file with encoding fallback and size limit.
-    Returns file content or None if unreadable.
-    """
+    """Reads a file with encoding fallback and size limit."""
     try:
         file_size = filepath.stat().st_size
         if file_size > MAX_FILE_SIZE_BYTES:
-            log("Skipping large file (%d bytes): %s" % (file_size, str(filepath)), level="DEBUG")
             return None
+        if file_size == 0:
+            return ""
     except OSError:
         return None
 
-    # Try UTF-8 first, then latin-1 as fallback
     for encoding in ("utf-8", "latin-1"):
         try:
             with open(str(filepath), "r", encoding=encoding) as f:
                 return f.read()
         except UnicodeDecodeError:
             continue
-        except Exception as e:
-            log("Error reading %s: %s" % (str(filepath), str(e)), level="DEBUG")
+        except Exception:
             return None
 
     return None
@@ -214,20 +218,16 @@ def _read_file_safe(filepath):
 
 def get_imports_from_notebook(filepath):
     # type: (Path) -> dict
-    """
-    Parses a Jupyter Notebook (.ipynb) and returns a dict of imports.
-    """
+    """Parses a Jupyter Notebook (.ipynb) and returns imports."""
     result = {
         "runtime": set(),
         "typing": set(),
         "dynamic": set()
     }  # type: Dict[str, Set[str]]
     try:
-        # Size check for notebooks too
         try:
             file_size = filepath.stat().st_size
             if file_size > MAX_FILE_SIZE_BYTES:
-                log("Skipping large notebook (%d bytes): %s" % (file_size, str(filepath)), level="DEBUG")
                 return result
         except OSError:
             return result
@@ -235,7 +235,6 @@ def get_imports_from_notebook(filepath):
         with open(str(filepath), "r", encoding="utf-8") as f:
             notebook = json.load(f)
 
-        # Extract code from all code cells
         code_lines = []
         for cell in notebook.get("cells", []):
             if cell.get("cell_type") == "code":
@@ -244,11 +243,13 @@ def get_imports_from_notebook(filepath):
                     code_lines.append(source)
                 elif isinstance(source, list):
                     code_lines.extend(source)
-                code_lines.append("\n")  # Separator
+                code_lines.append("\n")
 
         full_code = "".join(code_lines)
 
-        # Parse compiled code
+        if not _has_imports(full_code):
+            return result
+
         tree = ast.parse(full_code, filename=str(filepath))
         visitor = ImportVisitor()
         visitor.visit(tree)
@@ -265,15 +266,17 @@ def get_imports_from_notebook(filepath):
 def get_imports_from_file(filepath):
     # type: (Path) -> dict
     """
-    Parses a python file or notebook and returns a dict of imports:
-    {
-        "runtime": Set[str],
-        "typing": Set[str],
-        "dynamic": Set[str]
-    }
+    Parses a python file or notebook and returns imports.
+    Uses mtime-based caching to skip unchanged files.
+    Uses pre-filter to skip files without import keywords.
     """
     if str(filepath).endswith(".ipynb"):
         return get_imports_from_notebook(filepath)
+
+    # Check import cache (mtime + size based)
+    cache_key = _get_file_key(filepath)
+    if cache_key is not None and cache_key in _IMPORT_CACHE:
+        return _IMPORT_CACHE[cache_key]
 
     result = {
         "runtime": set(),
@@ -285,6 +288,12 @@ def get_imports_from_file(filepath):
     if content is None:
         return result
 
+    # Fast pre-filter: skip AST parse if no import-related keywords
+    if not _has_imports(content):
+        if cache_key is not None:
+            _IMPORT_CACHE[cache_key] = _EMPTY_RESULT
+        return _EMPTY_RESULT
+
     try:
         tree = ast.parse(content, filename=str(filepath))
 
@@ -294,6 +303,10 @@ def get_imports_from_file(filepath):
         result["runtime"] = visitor.imports
         result["typing"] = visitor.typing_imports
         result["dynamic"] = visitor.dynamic_imports
+
+        # Cache the result
+        if cache_key is not None:
+            _IMPORT_CACHE[cache_key] = result
 
     except SyntaxError as e:
         log("Syntax error in %s: %s" % (str(filepath), str(e)), level="ERROR")

@@ -18,12 +18,12 @@ pip install .
 
 ## Python Version Compatibility
 
-pypm 0.0.5 supports Python 3.5 through 3.14.
+pypm 0.0.6 supports Python 3.5 through 3.14.
 
 | Python Version | Notes |
 |---|---|
-| 3.5 – 3.7 | Compatible — plain ANSI output (no `rich` animations) |
-| 3.8+ | Full feature set with `rich` console output |
+| 3.5 – 3.7 | Compatible — verified with **vermin**; plain ANSI fallback |
+| 3.8 – 3.14 | Full feature set with `rich` console output |
 
 > If `uv` is available on your system, pypm will use it for faster installs. Otherwise, it falls back to `pip`.
 
@@ -41,6 +41,7 @@ pypm infer /path/to/project
 
 **Options:**
 -   `--dry-run`: Preview changes without modifying files.
+-   `--bench`: Display high-precision execution timing for analysis and total run.
 -   `--verbose` / `-v`: Show detailed debug output.
 
 ### `pypm install`

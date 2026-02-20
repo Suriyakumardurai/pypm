@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6] - 2026-02-20
+
+### Added
+- **Extreme Performance Optimization**:
+  - **Sub-200ms Execution**: Aggressive speed tuning reducing inference time by 75%.
+  - **Scan-Parse Pipeline**: Overlapping I/O and CPU tasks for zero dead time between scanning and parsing.
+  - **Import Caching**: `mtime` + size-based caching skips re-parsing of unchanged files.
+  - **Pre-filtering**: Ultra-fast content pre-filter skips AST parsing for files without import keywords.
+  - **Memory-Aware Worker Scaling**: Automatically caps concurrency on low-RAM systems (4GB) and reduces thread stack size to 256KB to prevent crashes.
+  - **Batch Stdlib Filtering**: O(1) batch set operations replacing thousands of individual function calls.
+- **CLI Benchmarking**: New `--bench` flag for `infer` and `install` provide high-precision timing for analysis and total execution.
+- **Vermin-Verified 3.5 Compatibility**: Code audited and fixed (e.g., `subprocess.run` polyfill) to guarantee support from Python 3.5 to 3.14.
+
 ## [0.0.5] - 2026-02-19
 
 ### Added

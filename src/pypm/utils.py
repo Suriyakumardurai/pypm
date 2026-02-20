@@ -1,3 +1,4 @@
+import os
 import sys
 import subprocess
 import shlex
@@ -98,7 +99,8 @@ def run_command(command, cwd=None):
         args = shlex.split(command, posix=(sys.platform != "win32"))
 
         result = subprocess.run(args, cwd=cwd, check=False,
-                                capture_output=True)
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
 
         if result.returncode != 0:
             print_error("Command failed with return code %d" % result.returncode)
@@ -119,3 +121,72 @@ def check_command_exists(command):
     """
     from shutil import which
     return which(command) is not None
+
+
+def get_optimal_workers(n_tasks, io_bound=False):
+    # type: (int, bool) -> int
+    """
+    Computes optimal thread pool size based on system resources.
+    Memory-aware: avoids overwhelming low-RAM systems (4GB).
+    Reduces thread stack size to 256KB (from default 8MB) for massive memory savings.
+    """
+    import threading as _threading
+
+    # Reduce thread stack size on first call (256KB instead of default 8MB)
+    # 128 threads: 8MB default = 1GB stacks. 256KB = 32MB stacks.
+    try:
+        _threading.stack_size(256 * 1024)
+    except (ValueError, RuntimeError):
+        pass  # Some platforms don't support stack_size
+
+    cpu = os.cpu_count() or 4
+
+    # Memory-aware cap: detect available RAM
+    mem_cap = 128  # default max
+    try:
+        if sys.platform == "win32":
+            # Windows: use ctypes to get available physical memory
+            import ctypes
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
+
+            mem_status = MEMORYSTATUSEX()
+            mem_status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+            kernel32.GlobalMemoryStatusEx(ctypes.byref(mem_status))
+            avail_mb = mem_status.ullAvailPhys // (1024 * 1024)
+        else:
+            # Linux/macOS: read /proc/meminfo or use os.sysconf
+            try:
+                pages = os.sysconf("SC_AVPHYS_PAGES")  # type: ignore[attr-defined]
+                page_size = os.sysconf("SC_PAGE_SIZE")  # type: ignore[attr-defined]
+                avail_mb = (pages * page_size) // (1024 * 1024)
+            except (ValueError, AttributeError):
+                avail_mb = 4096  # Assume 4GB if can't detect
+
+        # Scale workers based on available memory
+        # Each thread with 256KB stack + overhead ≈ 512KB
+        # Reserve 512MB for the process itself
+        usable_mb = max(256, avail_mb - 512)
+        mem_cap = max(4, usable_mb // 1)  # ~1MB per thread (stack + objects)
+
+    except Exception:
+        mem_cap = 64  # Conservative fallback
+
+    if io_bound:
+        max_w = min(cpu * 12, 128, mem_cap)
+    else:
+        max_w = min(cpu * 2, 32, mem_cap)
+
+    return max(1, min(max_w, n_tasks))

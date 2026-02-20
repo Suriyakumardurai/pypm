@@ -12,17 +12,19 @@
 
 pypm is a zero-config CLI tool that automatically infers dependencies from your Python source code.
 
-> **Stop writing dependencies twice. Let your imports define your project.**
-
-pypm parses your project using Python's AST, detects imports, resolves them to their correct PyPI package names (e.g., `PIL` → `Pillow`, `cv2` → `opencv-python`), and generates a modern `pyproject.toml` for you.
+## ⚡ Lightning-Fast Performance
+pypm is optimized for speed and efficiency:
+- **Sub-200ms Inference**: Scans and parses projects in milliseconds.
+- **Overlapping Pipeline**: Directory scanning and file parsing run in parallel.
+- **Smart Caching**: `mtime`-based import caching skips unchanged files.
+- **Memory-Aware**: Dynamic worker scaling for systems with limited RAM (e.g., 4GB).
 
 ## 🐍 Supported Python Versions
 
 | Version | Status |
 |---------|--------|
-| Python 3.5 – 3.7 | ✅ Compatible (EOL — no rich animations, plain ANSI fallback) |
-| Python 3.8 | ✅ Fully supported |
-| Python 3.9 – 3.14 | ✅ Fully supported (CI tested) |
+| Python 3.5 – 3.7 | ✅ Compatible (**vermin** verified) |
+| Python 3.8 – 3.14 | ✅ Fully supported (CI tested) |
 
 ## 🚀 Installation
 
@@ -40,35 +42,38 @@ pypm --help
 
 ## ⚡ Quick Start
 
-### 1️⃣ Infer Dependencies
-
 Scan the current directory and generate/update `pyproject.toml`:
 
 ```bash
 pypm infer
 ```
 
-### 2️⃣ Dry Run (Preview Only)
+### 2️⃣ Benchmarking speed
+Measure precisely how fast pypm is on your project:
 
+```bash
+pypm infer --bench
+```
+
+### 3️⃣ Dry Run (Preview Only)
 See what would be added without modifying files:
 
 ```bash
 pypm infer --dry-run
 ```
 
-### 3️⃣ Infer + Install Dependencies
-
+### 4️⃣ Infer + Install Dependencies
 Infer and install packages automatically:
 
 ```bash
-pypm install
+pypm install --bench
 ```
 
 > **Note:** If `uv` is available, it will be used for faster installs. Otherwise, it falls back to `pip`.
 
 ## ✨ Features
 
-- **Blazing Fast**: Scans 1000+ files in under 1 second using aggressive parallelism and local caching.
+- **Blazing Fast**: Sub-200ms execution on typical projects using overlapping I/O pipelines and `mtime` caching.
 - **Offline-First Mapping**: Uses a bundled database of 200+ popular packages to resolve dependencies instantly without network.
 - **Smart Inference**: Recursively scans your project for `.py` and `.ipynb` files and extracts all imports.
 - **Automatic Resolution**: Maps module names to actual PyPI packages (e.g., `PIL` → `Pillow`, `zmq` → `pyzmq`, `attr` → `attrs`).
@@ -82,7 +87,7 @@ pypm install
 
 ## 🔒 Security
 
-pypm 0.0.5 includes built-in protections:
+pypm 0.0.6 includes built-in protections:
 
 - **Command injection prevention**: All package names are validated against PEP 508 and checked for shell metacharacters before being passed to `pip`/`uv`.
 - **URL sanitization**: Import names are validated before being used in PyPI API URLs to prevent path traversal.

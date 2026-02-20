@@ -4,19 +4,18 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.0.6   | :white_check_mark: |
 | 0.0.5   | :white_check_mark: |
-| 0.0.4   | :white_check_mark: |
-| < 0.0.4 | :x:                |
+| < 0.0.5 | :x:                |
 
 ## Python Version Support
 
-pypm 0.0.5 supports Python 3.5 through 3.14:
+pypm 0.0.6 supports Python 3.5 through 3.14:
 
 | Python Version | Support Level |
 |---|---|
-| 3.5 – 3.7 | Compatible (EOL — no `rich` animations, ANSI fallback) |
-| 3.8 | Fully supported |
-| 3.9 – 3.14 | Fully supported (CI tested) |
+| 3.5 – 3.7 | Compatible (**vermin** verified) |
+| 3.8 – 3.14 | Fully supported (CI tested) |
 
 ## Security Measures
 

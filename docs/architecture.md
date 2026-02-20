@@ -1,12 +1,15 @@
 # Architecture
 
-`pypm` v0.0.5 follows a modular pipeline approach to dependency management.
+`pypm` v0.0.6 follows a modular pipeline approach to dependency management.
 
 ## Pipeline Steps
 
-1.  **Scanning** (`scanner.py`): Traverses the directory tree, skipping virtual environments, `node_modules`, build artifacts, IDE folders, caches, and symlinks. Finds all `.py` and `.ipynb` files.
+1.  **Scanning** (`scanner.py`): Traverses the directory tree using an ultra-fast generator. Finds all `.py` and `.ipynb` files.
 
-2.  **Parsing** (`parser.py`): Reads each file and uses `ast.parse()` to generate an Abstract Syntax Tree. The `ImportVisitor` class visits:
+2.  **Parsing** (`parser.py`): Reads each file and uses `ast.parse()`.
+    - **Caching**: Uses `mtime` + size-based caching to skip re-parsing unchanged files.
+    - **Pre-filtering**: Checks for `"import"` keywords before parsing to skip no-import files.
+    - **Visitor**: The `ImportVisitor` class visits:
     - `Import` and `ImportFrom` nodes for standard imports
     - `If` nodes to detect `TYPE_CHECKING` blocks (typing-only imports are separated)
     - `Try` nodes to handle `try/except ImportError` patterns (optional dependencies)
@@ -14,14 +17,12 @@
     - `Constant` / `Str` nodes to detect database connection strings in string literals
 
 3.  **Resolution** (`resolver.py`): The brain of the operation.
-    -   Filters Python standard library modules (150+ modules on Python < 3.10, `sys.stdlib_module_names` on 3.10+).
-    -   Detects and filters local project modules to avoid installing your own files from PyPI.
-    -   Filters suspicious/generic names (`app`, `config`, `utils`, `models`, etc.) that are almost always local.
-    -   Uses `COMMON_MAPPINGS` (60+ entries) for fast lookup of known non-obvious mappings (e.g., `cv2` → `opencv-python`, `zmq` → `pyzmq`).
-    -   Checks `KNOWN_PYPI_PACKAGES` bundled database (200+ packages) for offline resolution.
-    -   For unknown modules, queries PyPI in parallel (50 concurrent workers) ensuring the package exists.
-    -   Applies framework-specific extras (FastAPI → uvicorn, Django → gunicorn, etc.).
-    -   Deduplicates and merges extras into clean dependency strings.
+    -   Filters standard library modules (O(1) batch filtering).
+    -   Detects and filters local project modules.
+    -   Uses `COMMON_MAPPINGS` (75+ entries) for fast lookup.
+    -   Checks `KNOWN_PYPI_PACKAGES` bundled database (200+ packages).
+    -   Queries PyPI in parallel (up to 128 workers) using connection pooling.
+    -   Applies framework-specific extras.
 
 4.  **Generation** (`cli.py`): Takes the resolved list and updates `pyproject.toml` using a merging strategy that preserves existing configuration.
 
