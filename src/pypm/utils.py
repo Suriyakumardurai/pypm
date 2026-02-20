@@ -1,7 +1,7 @@
 import os
-import sys
-import subprocess
 import shlex
+import subprocess
+import sys
 
 # --- Rich Compatibility Layer ---
 # On Python < 3.8 or if rich is not installed, fall back to plain print.

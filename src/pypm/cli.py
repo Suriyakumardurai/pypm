@@ -1,14 +1,13 @@
 import argparse
 import time
-
 from pathlib import Path
 
-from .scanner import scan_directory, iter_scan_directory as _iter_scan  # noqa: F401
+from .installer import install_packages
 from .parser import get_imports_from_file
 from .resolver import resolve_dependencies
-from .installer import install_packages
-from .utils import print_success, print_error, print_warning, HAS_RICH, get_optimal_workers
-
+from .scanner import iter_scan_directory as _iter_scan
+from .scanner import scan_directory  # noqa: F401
+from .utils import HAS_RICH, get_optimal_workers, print_error, print_success, print_warning
 
 
 def is_dev_file(filepath, root_path):
@@ -42,11 +41,12 @@ def get_project_dependencies(root_path):
     Returns (prod_dependencies, dev_dependencies).
     Uses overlapping pipeline: scan → parse happen concurrently.
     """
-    from .heuristics import run_heuristics
-    from .utils import console
-    from concurrent.futures import ThreadPoolExecutor, as_completed
     import queue
     import threading
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    from .heuristics import run_heuristics
+    from .utils import console
 
     prod_imports = set()
     dev_imports = set()
@@ -241,6 +241,7 @@ def command_infer(args):
     # Display results
     if HAS_RICH:
         from rich.tree import Tree
+
         from .utils import console
 
         tree = Tree("[bold]Project: %s[/bold]" % root_path.name)

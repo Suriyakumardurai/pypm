@@ -1,7 +1,8 @@
-import sys
 import re
+import sys
 from typing import List  # noqa: F401
-from .utils import log, run_command, check_command_exists, print_error
+
+from .utils import check_command_exists, log, print_error, run_command
 
 # PEP 508 compliant package name pattern (letters, digits, hyphens, underscores, dots, extras, version specs)
 _SAFE_PACKAGE_RE = re.compile(

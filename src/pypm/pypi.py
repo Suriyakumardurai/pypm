@@ -1,10 +1,11 @@
 import json
 import os
-import stat
 import re
+import stat
 import threading
 from pathlib import Path  # noqa: F401
-from typing import Optional, Dict, List, Any  # noqa: F401
+from typing import Any, Dict, List, Optional  # noqa: F401
+
 from .utils import log
 
 # ---------- Cache Setup ----------
@@ -150,8 +151,8 @@ try:
     from requests.adapters import HTTPAdapter
     _HAS_REQUESTS = True
 except ImportError:
-    import urllib.request
     import urllib.error
+    import urllib.request
     _HAS_REQUESTS = False
 
 

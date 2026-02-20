@@ -1,7 +1,9 @@
+import re
 from pathlib import Path  # noqa: F401
 from typing import Set  # noqa: F401
-import re
+
 from .utils import log
+
 
 def detect_django_channels(root_path):
     # type: (Path) -> Set[str]

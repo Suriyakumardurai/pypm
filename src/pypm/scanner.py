@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from typing import List, Iterator  # noqa: F401
+from typing import Iterator, List  # noqa: F401
+
 from .utils import log
 
 # Directories to always skip during scanning

@@ -1,5 +1,6 @@
 from pypm.resolver import is_stdlib
 
+
 def test_is_stdlib_true():
     assert is_stdlib("os") is True
     assert is_stdlib("sys") is True

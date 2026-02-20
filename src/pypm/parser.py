@@ -1,8 +1,9 @@
 import ast
+import json
 import os
 from pathlib import Path  # noqa: F401
-import json
-from typing import Dict, Set, Optional  # noqa: F401
+from typing import Dict, Optional, Set  # noqa: F401
+
 from .utils import log
 
 # Security: Maximum file size to parse (10MB)

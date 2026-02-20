@@ -1,5 +1,6 @@
 from pypm.scanner import is_virtual_env
 
+
 def test_is_virtual_env_true(tmp_path):
     # Case 1: pyvenv.cfg exists
     venv_dir = tmp_path / "venv"

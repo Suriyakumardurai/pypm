@@ -1,8 +1,9 @@
 import sys
+from typing import Optional, Dict, List, Any, Set  # noqa: F401
 
-from .utils import log, get_optimal_workers
-from .pypi import find_pypi_package, check_package_exists, flush_cache
 from .db import KNOWN_PYPI_PACKAGES
+from .pypi import check_package_exists, find_pypi_package, flush_cache
+from .utils import get_optimal_workers, log
 
 # --- importlib.metadata compatibility ---
 try:
@@ -281,8 +282,8 @@ def resolve_dependencies(imports, project_root, known_local_modules=None):
 
     # 5. Online Verification (Parallelized for speed)
     if candidates_to_check:
-        from .utils import print_step
         from .pypi import get_package_extras
+        from .utils import print_step
 
         verified_deps = set()
 
