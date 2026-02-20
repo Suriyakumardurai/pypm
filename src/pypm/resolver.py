@@ -1,5 +1,5 @@
 import sys
-from typing import Optional, Dict, List, Any, Set  # noqa: F401
+from typing import Any, Dict, List, Optional, Set  # noqa: F401
 
 from .db import KNOWN_PYPI_PACKAGES
 from .pypi import check_package_exists, find_pypi_package, flush_cache
